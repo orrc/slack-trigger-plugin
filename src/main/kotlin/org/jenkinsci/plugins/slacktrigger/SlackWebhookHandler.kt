@@ -2,6 +2,7 @@ package org.jenkinsci.plugins.slacktrigger
 
 import hudson.model.*
 import hudson.security.ACL
+import hudson.security.Permission
 import jenkins.model.Jenkins
 import jenkins.model.ParameterizedJobMixIn
 import net.sf.json.JSONObject
@@ -234,6 +235,7 @@ class SlackWebhookHandler(
     private fun findMatchingJobs(jobName: String): List<Job<*, *>> {
         return Jenkins.getInstance().getAllItems(Job::class.java)
                 .asSequence()
+                .filter { it.hasPermission(Item.READ) }
                 .filter { jobName == it.getName() || jobName == it.getFullName() }
                 .toList()
     }
