@@ -6,11 +6,8 @@ import hudson.ExtensionList
 import hudson.ExtensionPoint
 import hudson.model.AbstractDescribableImpl
 import hudson.model.User
-import hudson.model.UserProperty
-import hudson.model.UserPropertyDescriptor
-import org.kohsuke.stapler.DataBoundConstructor
-import java.util.*
 
+/** Resolves a Slack user to a corresponding Jenkins user, if possible. */
 abstract class SlackToJenkinsUserResolver
     : ExtensionPoint, AbstractDescribableImpl<SlackToJenkinsUserResolver>() {
 
@@ -42,3 +39,15 @@ abstract class SlackToJenkinsUserResolver
     }
 }
 
+/** Resolver which returns Jenkins users who have successfully linked their Slack account via OAuth 2.0. */
+@Extension
+class AuthenticatedSlackUserResolver : SlackToJenkinsUserResolver() {
+    override fun resolveUser(slackUserId: String, slackUsername: String): User? {
+        return User.getAll()
+                .asSequence()
+                .mapNotNull { it.getProperty(SlackAccountUserProperty::class.java) }
+                .filter { it.slackUserId == slackUserId } // TODO: teamId
+                .map { it.getUser() }
+                .firstOrNull()
+    }
+}
