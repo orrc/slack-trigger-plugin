@@ -1,0 +1,10 @@
+<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form" xmlns:st="jelly:stapler">
+
+  <!-- TODO: More appropriate tag? -->
+  <f:entry title="${%Linked username}">
+    ${instance.slackUserName}
+  </f:entry>
+
+  <!-- TODO: De-auth / re-auth(?) button -->
+
+</j:jelly>
