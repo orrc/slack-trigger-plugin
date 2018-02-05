@@ -2,7 +2,9 @@ package org.jenkinsci.plugins.slacktrigger
 
 import hudson.Extension
 import hudson.model.UnprotectedRootAction
+import hudson.model.User
 import hudson.security.csrf.CrumbExclusion
+import hudson.util.HttpResponses
 import org.kohsuke.stapler.HttpResponse
 import org.kohsuke.stapler.QueryParameter
 import javax.servlet.FilterChain
@@ -10,7 +12,7 @@ import javax.servlet.http.HttpServletRequest
 import javax.servlet.http.HttpServletResponse
 
 /** URL namespace for all endpoints in this plugin. */
-private const val URL_NAMESPACE = "slack-trigger"
+internal const val URL_NAMESPACE = "slack-trigger"
 
 @Extension
 class SlackWebhookEndpoint : UnprotectedRootAction {
@@ -31,6 +33,22 @@ class SlackWebhookEndpoint : UnprotectedRootAction {
     ): HttpResponse {
         return SlackWebhookHandler(token, sslCheck, command, teamDomain, channelName, userId, userName, text,
                 responseUrl).execute()
+    }
+
+    @Suppress("unused") // Called by Stapler
+    fun doConnect(): HttpResponse {
+        // Check whether the user is logged in
+        if (User.current() == null) {
+            return HttpResponses.plainText("You must log in to Jenkins first.")
+        }
+
+        // Redirect to Slack OAuth2 page
+        return HttpResponses.redirectTo(getOAuth2Url())
+    }
+
+    private fun getOAuth2Url(): String {
+        val clientId = "1234556789.54321" // TODO: Use OAuth2 settings
+        return "https://slack.com/oauth/authorize?scope=identity.basic&client_id=$clientId" // TODO: Encode
     }
 
     // Unused overrides
