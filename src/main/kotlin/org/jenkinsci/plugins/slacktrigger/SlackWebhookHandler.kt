@@ -72,11 +72,30 @@ class SlackWebhookHandler(
 
         // Check for certain command types
         when (text) {
+            "connect" -> return connectSlackUser(userId, userName)
             "help" -> return createHelpResponse(command)
         }
 
         // Otherwise, we're ready to attempt to build something…
         return findJobAndExecuteBuild(command, teamDomain, channelName, userId, userName, text, responseUrl)
+    }
+
+    private fun connectSlackUser(userId: String, userName: String): Response {
+        // TODO: Check whether Jenkins has the Slack OAuth properties configured
+
+        // Check whether we're already connected
+        SlackToJenkinsUserResolver.resolve(userId, userName)?.let {
+            // TODO: Allow reconnect button anyway
+            return UserResponse("""You're already connected as "${it.id}" on Jenkins. :ok_hand:""")
+        }
+
+        // Prompt user to link their account
+        val url = Jenkins.getInstance().rootUrl + URL_NAMESPACE + "/connect"
+        return UserResponse("""
+            By connecting Jenkins with your Slack account, you'll be able to trigger builds of jobs that you have
+            permission to access. Click here to connect:
+            $url
+            """.trimIndent())
     }
 
     private fun findJobAndExecuteBuild(
