@@ -52,6 +52,8 @@ class SlackWebhookEndpoint : UnprotectedRootAction {
     fun doConnect(): HttpResponse {
         // Check whether the user is logged in
         if (User.current() == null) {
+            // TODO: Redirect to login page, with auto-return to this URL
+            // TODO: Or, if security is disabled (can we tell?), tell the user that they need do nothing?
             return HttpResponses.plainText("You must log in to Jenkins first.")
         }
 

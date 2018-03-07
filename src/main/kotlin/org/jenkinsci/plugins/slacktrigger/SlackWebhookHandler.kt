@@ -87,15 +87,15 @@ class SlackWebhookHandler(
         // Check whether we're already connected
         SlackToJenkinsUserResolver.resolve(userId, userName)?.let {
             // TODO: Allow reconnect button anyway
+            // TODO: Or validate that we actually are still connected via the Slack API
             return UserResponse("""You're already connected as "${it.id}" on Jenkins. :ok_hand:""")
         }
 
         // Prompt user to link their account
         val url = Jenkins.getInstance().rootUrl + URL_NAMESPACE + "/connect"
         return UserResponse("""
-            By connecting Jenkins with your Slack account, you'll be able to trigger builds of jobs that you have
-            permission to access. Click here to connect:
-            $url
+            :point_up: By connecting Jenkins with your Slack account, you'll be able to trigger builds of jobs that you
+            have permission to access. Click here to connect: $url
             """.trimIndent())
     }
 
@@ -143,6 +143,7 @@ class SlackWebhookHandler(
         if (jobs.isEmpty()) {
             return UserResponse("""
                 :warning: Could not find a job called "$jobSearchText" — do you have permission to view it?
+                :lock: Use `$command connect` to connect Jenkins with your Slack account
             """.trimIndent())
         }
 
@@ -158,7 +159,7 @@ class SlackWebhookHandler(
         // Check whether the job can be built
         val job = jobs.first()
         if (!job.isBuildable()) {
-            return UserResponse(""":no_entry_sign: The job "${job.getFullName()}" is currently disabled""")
+            return ChannelResponse(""":no_entry_sign: The job "${job.getFullName()}" is currently disabled""")
         }
 
         if (!job.hasPermission(Job.BUILD)) {
@@ -172,7 +173,7 @@ class SlackWebhookHandler(
         val cause = createBuildTriggerCause(teamDomain, channelName, userId, userName)
         job.scheduleBuild(cause = cause)
 
-        return ChannelResponse(""":bulb: Successfully triggered a build of "$jobSearchText"""")
+        return ChannelResponse(""":bulb: Successfully triggered a build of "${job.getFullName()}"""")
     }
 
     private fun createHttpResponse(response: Response) = createHttpResponse(response.type, response.message)
@@ -203,6 +204,8 @@ class SlackWebhookHandler(
                 > `$command Web Site/deploy`
                 :small_blue_diamond: Start a build that takes parameters:
                 > `$command my job BRANCH=release/4.2 DEPLOY=true`
+                :lock: Connect Jenkins with your Slack account, allowing you to build jobs you have access to:
+                > `$command connect`
                """.trimIndent()
             )
 
