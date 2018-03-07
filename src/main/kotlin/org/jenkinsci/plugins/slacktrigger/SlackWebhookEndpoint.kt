@@ -14,6 +14,7 @@ import okhttp3.Response
 import org.kohsuke.stapler.HttpResponse
 import org.kohsuke.stapler.QueryParameter
 import org.kohsuke.stapler.WebMethod
+import org.kohsuke.stapler.interceptor.RequirePOST
 import java.io.IOException
 import java.util.logging.Logger
 import javax.servlet.FilterChain
@@ -30,6 +31,7 @@ class SlackWebhookEndpoint : UnprotectedRootAction {
 
     override fun getUrlName() = URL_NAMESPACE
 
+    @RequirePOST
     @Suppress("unused") // Called by Stapler
     fun doBuild(
             @QueryParameter("token") token: String?,
