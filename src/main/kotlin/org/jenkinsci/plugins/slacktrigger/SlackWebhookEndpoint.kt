@@ -63,6 +63,13 @@ class SlackWebhookEndpoint : UnprotectedRootAction {
             @QueryParameter("code") code: String?,
             @QueryParameter("error") error: String?
     ): HttpResponse {
+        // Check whether OAuth2 values have been set
+        val clientId = SlackGlobalConfiguration.get().clientId
+        val clientSecret = SlackGlobalConfiguration.get().clientSecret
+        if (clientId == null || clientSecret == null) {
+            return HttpResponses.plainText("You need to configure globally stuff first... TODO")
+        }
+
         // Check for user logged in
         val currentUser = User.current() ?: return HttpResponses.plainText("You must log in to Jenkins first.")
 
@@ -78,12 +85,11 @@ class SlackWebhookEndpoint : UnprotectedRootAction {
         }
 
         // Build Slack API request for user data
-        val clientId = "1234556789.54321" // TODO
-        val clientSecret = "loremipsumfoobarbaz" // TODO
+        val clientSecretValue = clientSecret.plainText
         val url = HttpUrl.parse("https://slack.com/api/oauth.access")!!
                 .newBuilder()
                 .addQueryParameter("client_id", clientId)
-                .addQueryParameter("client_secret", clientSecret)
+                .addQueryParameter("client_secret", clientSecretValue)
                 .addQueryParameter("code", code)
                 .build()
         val request = Request.Builder().url(url).build()
@@ -94,7 +100,7 @@ class SlackWebhookEndpoint : UnprotectedRootAction {
             response = OkHttpClient().newCall(request).execute()
         } catch (ex: IOException) {
             logger.info("""Failed to get user info for "${currentUser.id}" from Slack API: $ex""")
-            val message = ex.message.redact(clientSecret)
+            val message = ex.message.redact(clientSecretValue)
             return HttpResponses.plainText("Try again. An error occurred while attempting to reach Slack: $message")
         }
 
@@ -151,8 +157,8 @@ class SlackWebhookEndpoint : UnprotectedRootAction {
     }
 
     private fun getOAuth2Url(): String {
-        val clientId = "1234556789.54321" // TODO: Use OAuth2 settings
-        return "https://slack.com/oauth/authorize?scope=identity.basic&client_id=$clientId" // TODO: Encode
+        val clientId = SlackGlobalConfiguration.get().clientId
+        return "https://slack.com/oauth/authorize?scope=identity.basic&client_id=$clientId" // TODO: Encode, sanitize?
     }
 
     private fun String?.redact(secret: String): String =
