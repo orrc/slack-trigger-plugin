@@ -106,7 +106,7 @@ class SlackWebhookEndpoint : UnprotectedRootAction {
                 Try again. Slack returned an unexpected response:
                 - HTTP code: ${response.code()}
                 - Response:
-                ${body?.substring(0..10000).redact(clientSecret)}
+                ${body.truncate(10000).redact(clientSecretValue)}
                 """.trimIndent())
         }
 
@@ -117,16 +117,16 @@ class SlackWebhookEndpoint : UnprotectedRootAction {
             if (!apiResponse.optBoolean("ok")) {
                 logger.info("""
                     Fetching user info for "${currentUser.id}" from Slack gave non-ok response:
-                    ${body?.substring(0..2000).redact(clientSecret)}
+                    ${body.truncate(2000).redact(clientSecretValue)}
                     """.trimIndent())
                 return HttpResponses.plainText("Try again. Something went wrong while connecting to Slack.")
             }
         } catch (ex: JSONException) {
-            val shortBody = body?.substring(0..2000)
+            val shortBody = body.truncate(2000)
             logger.info("""Fetching user info for "${currentUser.id}" from Slack returned non-JSON: $shortBody""")
             return HttpResponses.plainText("""
                     Try again. Slack returned an unexpected response:
-                    ${body?.substring(0..10000).redact(clientSecret)}
+                    ${body.truncate(10000).redact(clientSecretValue)}
                     """.trimIndent())
         }
 
@@ -134,7 +134,7 @@ class SlackWebhookEndpoint : UnprotectedRootAction {
         val teamId = apiResponse.optJSONObject("team")?.optString("id")
         val userId = apiResponse.optJSONObject("user")?.optString("id")
         if (teamId == null || userId == null) {
-            val shortBody = body?.substring(0..2000)
+            val shortBody = body.truncate(2000)
             logger.info("""Fetching user info for "${currentUser.id}" from Slack returned unexpected JSON:
                 $shortBody""".trimIndent())
             return HttpResponses.plainText("Try again. Something went wrong while connecting to Slack.")
@@ -159,6 +159,12 @@ class SlackWebhookEndpoint : UnprotectedRootAction {
             when (this) {
                 null -> "(unknown)"
                 else -> this.replace(secret, "********")
+            }
+
+    private fun String?.truncate(maxLength: Int): String =
+            when (this) {
+                null -> ""
+                else -> this.substring(0 until Math.min(this.length, maxLength))
             }
 
     // Unused overrides
