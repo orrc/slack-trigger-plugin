@@ -121,7 +121,6 @@ class SlackWebhookHandler(
         // Attempt to resolve the Slack user to a Jenkins user;
         // this lets us find jobs and execute builds on their behalf
         val user = SlackToJenkinsUserResolver.resolve(userId, userName)
-        println("Resolved Slack user: $user")
 
         // Impersonate the user, falling back to anonymous
         return user.runAs {
@@ -151,7 +150,7 @@ class SlackWebhookHandler(
         if (jobs.size > 1) {
             val msg = jobs.fold(":thinking_face: There are multiple jobs with that name; " +
                     "please specify the full name:") { msg, job ->
-                "$msg\n:small_blue_diamond: `$command ${job.getFullName()}`" // TODO: Parameters
+                "$msg\n:small_blue_diamond: ${job.slackLink()}" // TODO: Include configured parameter names?
             }
             return UserResponse(msg)
         }
@@ -159,11 +158,11 @@ class SlackWebhookHandler(
         // Check whether the job can be built
         val job = jobs.first()
         if (!job.isBuildable()) {
-            return ChannelResponse(""":no_entry_sign: The job "${job.getFullName()}" is currently disabled""")
+            return ChannelResponse(""":no_entry_sign: The job "${job.slackLink()}" is currently disabled""")
         }
 
         if (!job.hasPermission(Job.BUILD)) {
-            return UserResponse(""":no_entry: You don't have permission to build "${job.getFullName()}"""")
+            return UserResponse(""":no_entry: You don't have permission to build "${job.slackLink()}"""")
         }
 
         // TODO: Create action, stashing the responseUrl for later use…
@@ -173,7 +172,7 @@ class SlackWebhookHandler(
         val cause = createBuildTriggerCause(teamDomain, channelName, userId, userName)
         job.scheduleBuild(cause = cause)
 
-        return ChannelResponse(""":bulb: Successfully triggered a build of "${job.getFullName()}"""")
+        return ChannelResponse(""":bulb: Successfully triggered a build of "${job.slackLink()}"""")
     }
 
     private fun createHttpResponse(response: Response) = createHttpResponse(response.type, response.message)
@@ -241,6 +240,12 @@ class SlackWebhookHandler(
         // We could look at the channel ID, but I don't see a guarantee that channel_id for a DM starts with 'D'
         val channel = if (channelName == "directmessage") null else channelName
         return SlackTriggerCause(teamDomain, channel, userId, userName)
+    }
+
+    /** @return A link to the job, showing its name, using the Slack message syntax. */
+    private fun Job<*, *>.slackLink(): String {
+        val url = Jenkins.getInstance().rootUrl + this.getUrl()
+        return "<$url|${this.getFullName()}>"
     }
 
     internal enum class ResponseType(private val slackValue: String?) {
