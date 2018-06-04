@@ -27,27 +27,22 @@ abstract class SlackToJenkinsUserResolver
          * until either a Jenkins user is found, or none of the resolvers have an answer.
          */
         @JvmStatic
-        fun resolve(slackUserId: String, slackUsername: String): User? {
-            all().forEach {
-                val user = it.resolveUser(slackUserId, slackUsername)
-                if (user != null) {
-                    return user
-                }
-            }
-            return null
-        }
+        fun resolve(slackUserId: String, slackUsername: String): User? =
+            all()
+                .asSequence()
+                .map { it.resolveUser(slackUserId, slackUsername) }
+                .firstOrNull()
     }
 }
 
 /** Resolver which returns Jenkins users who have successfully linked their Slack account via OAuth 2.0. */
 @Extension
 class AuthenticatedSlackUserResolver : SlackToJenkinsUserResolver() {
-    override fun resolveUser(slackUserId: String, slackUsername: String): User? {
-        return User.getAll()
-                .asSequence()
-                .mapNotNull { it.getProperty(SlackAccountUserProperty::class.java) }
-                .filter { it.slackUserId == slackUserId } // TODO: teamId
-                .map { it.getUser() }
-                .firstOrNull()
-    }
+    override fun resolveUser(slackUserId: String, slackUsername: String): User? =
+        User.getAll()
+            .asSequence()
+            .mapNotNull { it.getProperty(SlackAccountUserProperty::class.java) }
+            .filter { it.slackUserId == slackUserId } // TODO: teamId
+            .map { it.getUser() }
+            .firstOrNull()
 }
