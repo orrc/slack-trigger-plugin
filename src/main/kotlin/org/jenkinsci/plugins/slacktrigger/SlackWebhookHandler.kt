@@ -2,7 +2,6 @@ package org.jenkinsci.plugins.slacktrigger
 
 import hudson.model.*
 import hudson.security.ACL
-import hudson.security.Permission
 import jenkins.model.Jenkins
 import jenkins.model.ParameterizedJobMixIn
 import net.sf.json.JSONObject
@@ -92,7 +91,7 @@ class SlackWebhookHandler(
         }
 
         // Prompt user to link their account
-        val url = Jenkins.getInstance().rootUrl + URL_NAMESPACE + "/connect"
+        val url = SlackConnectEndpoint.connectUrl
         return UserResponse("""
             :point_up: By connecting Jenkins with your Slack account, you'll be able to trigger builds of jobs that you
             have permission to access. Click here to connect: $url
