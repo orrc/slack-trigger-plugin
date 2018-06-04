@@ -215,15 +215,6 @@ class SlackWebhookHandler(
         ParameterizedJobMixIn.scheduleBuild2(this, quietPeriod, *allActions.toTypedArray())
     }
 
-    // TODO: Should be built in to Kotlin
-    private inline fun <T : AutoCloseable?, R> T.use(block: (T) -> R): R {
-        return try {
-            block(this)
-        } finally {
-            this?.close()
-        }
-    }
-
     private inline fun <R> User?.runAs(block: () -> R): R =
             this?.let { impersonate().runAs { block() } } ?: block()
 
