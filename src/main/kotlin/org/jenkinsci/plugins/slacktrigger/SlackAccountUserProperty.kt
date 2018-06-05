@@ -26,15 +26,19 @@ data class SlackAccountUserProperty
         @Suppress("unused") // Called by Stapler
         fun doDisconnect(@AncestorInPath user: User): FormValidation {
             // It doesn't seem that we can remove UserProperties? So mark it as inactive…
-            user.getProperty(SlackAccountUserProperty::class.java)?.let {
-                it.teamId = ""
-                it.slackUserId = ""
-                it.slackUserName = ""
-                it.isActive = false
-                user.save()
-            }
+            user.disableSlackAccountUserProperty()
             return FormValidation.ok("Disconnected!")
         }
     }
 
+}
+
+internal fun User.disableSlackAccountUserProperty() {
+    this.getProperty(SlackAccountUserProperty::class.java)?.let {
+        it.teamId = ""
+        it.slackUserId = ""
+        it.slackUserName = ""
+        it.isActive = false
+        this.save()
+    }
 }

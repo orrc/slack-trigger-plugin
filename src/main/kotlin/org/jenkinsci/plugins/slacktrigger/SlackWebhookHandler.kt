@@ -78,6 +78,7 @@ class SlackWebhookHandler(
         // Check for certain command types
         when (text.trim()) {
             "connect" -> return connectSlackUser(userId, userName)
+            "disconnect" -> return disconnectSlackUser(userId, userName)
             "", "help" -> return createHelpResponse(command)
         }
 
@@ -105,6 +106,11 @@ class SlackWebhookHandler(
             :point_up: By connecting Jenkins with your Slack account, you'll be able to trigger builds of jobs for
             which you have permission. Click here to connect: $url
             """.trimIndent())
+    }
+
+    private fun disconnectSlackUser(userId: String, userName: String): Response {
+        SlackToJenkinsUserResolver.resolve(userId, userName)?.disableSlackAccountUserProperty()
+        return UserResponse(":raised_hands: Your Slack account has been disconnected from Jenkins.")
     }
 
     private fun findJobAndExecuteBuild(
@@ -226,6 +232,8 @@ class SlackWebhookHandler(
                 this command does not _yet_ support specifying parameter values when triggering a build.
                 :lock: Connect Jenkins with your Slack account, allowing you to build jobs you have access to:
                 > `$command connect`
+                :unlock: Disconnect your Slack account from your Jenkins account:
+                > `$command disconnect`
                """.trimIndent()
             )
 
