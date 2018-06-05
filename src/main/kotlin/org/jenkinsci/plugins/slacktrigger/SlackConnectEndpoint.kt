@@ -48,6 +48,7 @@ class SlackConnectEndpoint : RootAction {
             @QueryParameter("code") code: String?,
             @QueryParameter("error") error: String?
     ): HttpResponse {
+        // TODO: Fancier pages for all responses, rather than just plain text, as these are all user-facing
         // Check whether OAuth2 values have been set
         if (!SlackGlobalConfiguration.hasOauthConfigured()) {
             return HttpResponses.plainText("Jenkins does not have the Slack OAuth client ID and secret configured.")

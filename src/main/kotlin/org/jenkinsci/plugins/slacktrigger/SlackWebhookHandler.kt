@@ -95,8 +95,6 @@ class SlackWebhookHandler(
 
         // Check whether we're already connected
         SlackToJenkinsUserResolver.resolve(userId, userName)?.let {
-            // TODO: Allow reconnect button anyway
-            // TODO: Or validate that we actually are still connected via the Slack API
             return UserResponse("""You're already connected as "${it.id}" on Jenkins. :ok_hand:""")
         }
 
@@ -138,11 +136,11 @@ class SlackWebhookHandler(
 
         // Impersonate the user, falling back to anonymous
         return user.runAs {
-            findJobAndExecuteBuild2(command, teamDomain, channelName, userId, userName, jobSearchText, responseUrl)
+            findJobAndExecuteBuildAsUser(command, teamDomain, channelName, userId, userName, jobSearchText, responseUrl)
         }
     }
 
-    private fun findJobAndExecuteBuild2(
+    private fun findJobAndExecuteBuildAsUser(
             command: String,
             teamDomain: String,
             channelName: String,
