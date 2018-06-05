@@ -254,8 +254,12 @@ class SlackWebhookHandler(
             teamDomain: String, channelName: String, userId: String, userName: String
     ): SlackTriggerCause {
         // If there's a channel called "#directmessage", then tough luck; that's what you get for crazy naming.
-        // We could look at the channel ID, but I don't see a guarantee that channel_id for a DM starts with 'D'
-        val channel = if (channelName == "directmessage") null else channelName
+        // We could look at the channel ID, but I don't see a guarantee that channel_id for a DM starts with 'D'.
+        // The same for private channels, which appear as "privategroup" (whose channel_id tends to start with 'G')
+        val channel = when (channelName) {
+            "directmessage", "privategroup" -> null
+            else -> channelName
+        }
         return SlackTriggerCause(teamDomain, channel, userId, userName)
     }
 
