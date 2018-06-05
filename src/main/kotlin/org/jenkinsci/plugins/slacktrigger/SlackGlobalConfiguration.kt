@@ -20,6 +20,12 @@ class SlackGlobalConfiguration : GlobalConfiguration() {
             save()
         }
 
+    var verificationToken: String? = null
+        @DataBoundSetter set(value) {
+            field = value
+            save()
+        }
+
     companion object {
         fun get() = GlobalConfiguration.all().get(SlackGlobalConfiguration::class.java)!!
     }

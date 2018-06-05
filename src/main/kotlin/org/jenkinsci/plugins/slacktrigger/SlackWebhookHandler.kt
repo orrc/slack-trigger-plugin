@@ -26,19 +26,24 @@ class SlackWebhookHandler(
     private val logger = Logger.getLogger(SlackWebhookHandler::class.java.name)
 
     fun execute(): HttpResponse {
-        println("Start of HTTP command with context: ${User.current()}")
         val response = executeInternal()
-        println("End of HTTP command with context: ${User.current()}")
         return createHttpResponse(response)
     }
 
     private fun executeInternal(): Response {
-        // TODO: Verify token against config
-        if (token == "TODO-read-from-config") {
-            logger.fine("Ignoring Slack webhook as it has an unexpected verification token: '$token'")
-            val configUrl = Jenkins.getInstance().rootUrl + "configure"
+        // Check that the verification token has been configured
+        val expectedToken = SlackGlobalConfiguration.get().verificationToken
+        if (expectedToken == null) {
+            logger.warning("Ignoring Slack webhook as verification token is configured")
+            return ChannelResponse(":fire: Jenkins does not have the Slack verification token configured: " +
+                    Jenkins.getInstance().configUrl())
+        }
+
+        // Verify token against configured value
+        if (token != expectedToken) {
+            logger.info("Ignoring Slack webhook as it has an unexpected verification token: '$token'")
             return ChannelResponse(":fire: Jenkins does not have the correct Slack verification token configured: " +
-                    configUrl)
+                    Jenkins.getInstance().configUrl())
         }
 
         // Respond to pings from Slack checking whether we're properly configured
@@ -93,8 +98,8 @@ class SlackWebhookHandler(
         // Prompt user to link their account
         val url = SlackConnectEndpoint.connectUrl
         return UserResponse("""
-            :point_up: By connecting Jenkins with your Slack account, you'll be able to trigger builds of jobs that you
-            have permission to access. Click here to connect: $url
+            :point_up: By connecting Jenkins with your Slack account, you'll be able to trigger builds of jobs for
+            which you have permission. Click here to connect: $url
             """.trimIndent())
     }
 
@@ -246,6 +251,8 @@ class SlackWebhookHandler(
         val url = Jenkins.getInstance().rootUrl + this.getUrl()
         return "<$url|${this.getFullName()}>"
     }
+
+    private fun Jenkins.configUrl() = this.rootUrl + "configure"
 
     internal enum class ResponseType(private val slackValue: String?) {
         USER("ephemeral"),
