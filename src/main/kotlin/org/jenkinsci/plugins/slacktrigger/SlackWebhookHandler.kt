@@ -218,8 +218,8 @@ class SlackWebhookHandler(
                 > `$command my job`
                 :small_blue_diamond: Start a build of the "deploy" job in the "Web Site" folder:
                 > `$command Web Site/deploy`
-                :small_blue_diamond: Start a build that takes parameters:
-                > `$command my job BRANCH=release/4.2 DEPLOY=true`
+                :small_orange_diamond: Starting a build of a parameterised job will use the configured default values;
+                this command does not _yet_ support specifying parameter values when triggering a build.
                 :lock: Connect Jenkins with your Slack account, allowing you to build jobs you have access to:
                 > `$command connect`
                """.trimIndent()
