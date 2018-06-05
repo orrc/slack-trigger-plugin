@@ -43,6 +43,7 @@ class AuthenticatedSlackUserResolver : SlackToJenkinsUserResolver() {
             .asSequence()
             .mapNotNull { it.getProperty(SlackAccountUserProperty::class.java) }
             .filter { it.slackUserId == slackUserId } // TODO: teamId
+            .filter { it.isActive }
             .map { it.getUser() }
             .firstOrNull()
 }

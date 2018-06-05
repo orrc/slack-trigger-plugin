@@ -1,10 +1,19 @@
+<?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form" xmlns:st="jelly:stapler">
 
-  <!-- TODO: More appropriate tag? -->
   <f:entry title="${%Linked username}">
-    ${instance.slackUserName}
+    <j:choose>
+     <j:when test="${instance.isActive()}">
+        ${instance.slackUserId}
+      </j:when>
+      <j:otherwise>
+        N/A
+      </j:otherwise>
+    </j:choose>
   </f:entry>
 
-  <!-- TODO: De-auth / re-auth(?) button -->
+  <j:if test="${instance.isActive()}">
+    <f:validateButton title="${%Disconnect Slack user}" method="disconnect" />
+  </j:if>
 
 </j:jelly>
