@@ -144,10 +144,14 @@ class SlackWebhookHandler(
         // Find jobs which match the given text
         val jobs = findMatchingJobs(jobSearchText)
         if (jobs.isEmpty()) {
+            val connectMsg = when (SlackToJenkinsUserResolver.resolve(userId, userName)) {
+                null -> ":lock: Use `$command connect` to connect Jenkins with your Slack account"
+                else -> ""
+            }
             return UserResponse("""
                 :warning: Could not find a job called "$jobSearchText" — do you have permission to view it?
-                :lock: Use `$command connect` to connect Jenkins with your Slack account
-            """.trimIndent())
+                $connectMsg
+                """.trimIndent())
         }
 
         // Ask the user to disambiguate, if multiple jobs with the same short name were found
@@ -165,8 +169,16 @@ class SlackWebhookHandler(
             return ChannelResponse(""":no_entry_sign: The job "${job.slackLink()}" is currently disabled""")
         }
 
+        // Check whether the user is allowed to build this job
         if (!job.hasPermission(Job.BUILD)) {
-            return UserResponse(""":no_entry: You don't have permission to build "${job.slackLink()}"""")
+            val connectMsg = when (SlackToJenkinsUserResolver.resolve(userId, userName)) {
+                null -> ":lock: Use `$command connect` to connect Jenkins with your Slack account"
+                else -> ""
+            }
+            return UserResponse("""
+                :no_entry: You don't have permission to build "${job.slackLink()}"
+                $connectMsg
+                """.trimIndent())
         }
 
         // TODO: Create action, stashing the responseUrl for later use…
