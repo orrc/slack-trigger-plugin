@@ -213,6 +213,7 @@ class SlackWebhookHandler(
 
     private fun createHelpResponse(command: String) =
             UserResponse("""
+                :wave: You can use this command to trigger builds on <${Jenkins.getInstance().rootUrl}|Jenkins>:
                 :small_blue_diamond: Start a build of "my job":
                 > `$command my job`
                 :small_blue_diamond: Start a build of the "deploy" job in the "Web Site" folder:
