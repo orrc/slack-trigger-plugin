@@ -28,6 +28,11 @@ class SlackGlobalConfiguration : GlobalConfiguration() {
 
     companion object {
         fun get() = GlobalConfiguration.all().get(SlackGlobalConfiguration::class.java)!!
+
+        /** @return `true` if both the OAuth 2.0 client ID and secret have been configured. */
+        fun hasOauthConfigured() = with (get()) {
+                clientId != null && clientSecret != null
+            }
     }
 
     init {

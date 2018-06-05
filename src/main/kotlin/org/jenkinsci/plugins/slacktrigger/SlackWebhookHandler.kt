@@ -86,7 +86,11 @@ class SlackWebhookHandler(
     }
 
     private fun connectSlackUser(userId: String, userName: String): Response {
-        // TODO: Check whether Jenkins has the Slack OAuth properties configured
+        // Check whether Jenkins has the Slack OAuth properties configured
+        if (!SlackGlobalConfiguration.hasOauthConfigured()) {
+            return ChannelResponse(":fire: Jenkins does not have the Slack OAuth client ID and secret configured: " +
+                    Jenkins.getInstance().configUrl())
+        }
 
         // Check whether we're already connected
         SlackToJenkinsUserResolver.resolve(userId, userName)?.let {

@@ -49,10 +49,8 @@ class SlackConnectEndpoint : RootAction {
             @QueryParameter("error") error: String?
     ): HttpResponse {
         // Check whether OAuth2 values have been set
-        val clientId = SlackGlobalConfiguration.get().clientId
-        val clientSecret = SlackGlobalConfiguration.get().clientSecret
-        if (clientId == null || clientSecret == null) {
-            return HttpResponses.plainText("You need to configure globally stuff first... TODO")
+        if (!SlackGlobalConfiguration.hasOauthConfigured()) {
+            return HttpResponses.plainText("Jenkins does not have the Slack OAuth client ID and secret configured.")
         }
 
         // Check for user logged in
@@ -70,11 +68,12 @@ class SlackConnectEndpoint : RootAction {
         }
 
         // Build Slack API request for user data
-        val clientSecretValue = clientSecret.plainText
+        val clientId = SlackGlobalConfiguration.get().clientId
+        val clientSecret = SlackGlobalConfiguration.get().clientSecret!!.plainText
         val url = HttpUrl.parse("https://slack.com/api/oauth.access")!!
                 .newBuilder()
                 .addQueryParameter("client_id", clientId)
-                .addQueryParameter("client_secret", clientSecretValue)
+                .addQueryParameter("client_secret", clientSecret)
                 .addQueryParameter("code", code)
                 .build()
         val request = Request.Builder().url(url).build()
@@ -85,7 +84,7 @@ class SlackConnectEndpoint : RootAction {
             response = OkHttpClient().newCall(request).execute()
         } catch (ex: IOException) {
             logger.info("""Failed to get user info for "${currentUser.id}" from Slack API: $ex""")
-            val message = ex.message.redact(clientSecretValue)
+            val message = ex.message.redact(clientSecret)
             return HttpResponses.plainText("Try again. An error occurred while attempting to reach Slack: $message")
         }
 
@@ -97,7 +96,7 @@ class SlackConnectEndpoint : RootAction {
                 Try again. Slack returned an unexpected response:
                 - HTTP code: ${response.code()}
                 - Response:
-                ${body.truncate(10000).redact(clientSecretValue)}
+                ${body.truncate(10000).redact(clientSecret)}
                 """.trimIndent())
         }
 
@@ -108,7 +107,7 @@ class SlackConnectEndpoint : RootAction {
             if (!apiResponse.optBoolean("ok")) {
                 logger.info("""
                     Fetching user info for "${currentUser.id}" from Slack gave non-ok response:
-                    ${body.truncate(2000).redact(clientSecretValue)}
+                    ${body.truncate(2000).redact(clientSecret)}
                     """.trimIndent())
                 return HttpResponses.plainText("Try again. Something went wrong while connecting to Slack.")
             }
@@ -117,7 +116,7 @@ class SlackConnectEndpoint : RootAction {
             logger.info("""Fetching user info for "${currentUser.id}" from Slack returned non-JSON: $shortBody""")
             return HttpResponses.plainText("""
                     Try again. Slack returned an unexpected response:
-                    ${body.truncate(10000).redact(clientSecretValue)}
+                    ${body.truncate(10000).redact(clientSecret)}
                     """.trimIndent())
         }
 
