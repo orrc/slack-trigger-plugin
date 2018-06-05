@@ -76,9 +76,9 @@ class SlackWebhookHandler(
         }
 
         // Check for certain command types
-        when (text) {
+        when (text.trim()) {
             "connect" -> return connectSlackUser(userId, userName)
-            "help" -> return createHelpResponse(command)
+            "", "help" -> return createHelpResponse(command)
         }
 
         // Otherwise, we're ready to attempt to build something…
