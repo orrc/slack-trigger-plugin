@@ -97,7 +97,7 @@ class SlackConnectEndpoint : RootAction {
                 Try again. Slack returned an unexpected response:
                 - HTTP code: ${response.code()}
                 - Response:
-                ${body.truncate(10000).redact(clientSecret)}
+                ${body.redact(clientSecret).truncate(10000)}
                 """.trimIndent())
         }
 
@@ -108,7 +108,7 @@ class SlackConnectEndpoint : RootAction {
             if (!apiResponse.optBoolean("ok")) {
                 logger.info("""
                     Fetching user info for "${currentUser.id}" from Slack gave non-ok response:
-                    ${body.truncate(2000).redact(clientSecret)}
+                    ${body.redact(clientSecret).truncate(2000)}
                     """.trimIndent())
                 return HttpResponses.plainText("Try again. Something went wrong while connecting to Slack.")
             }
@@ -117,7 +117,7 @@ class SlackConnectEndpoint : RootAction {
             logger.info("""Fetching user info for "${currentUser.id}" from Slack returned non-JSON: $shortBody""")
             return HttpResponses.plainText("""
                     Try again. Slack returned an unexpected response:
-                    ${body.truncate(10000).redact(clientSecret)}
+                    ${body.redact(clientSecret).truncate(10000)}
                     """.trimIndent())
         }
 
