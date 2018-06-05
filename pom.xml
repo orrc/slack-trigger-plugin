@@ -17,9 +17,8 @@
         <kotlin.compiler.incremental>true</kotlin.compiler.incremental>
     </properties>
     <name>Slack Trigger Plugin</name>
-    <description>TODO</description>
-    <url>https://wiki.jenkins-ci.org/display/JENKINS/TODO+Plugin</url>
-    <!-- The default licence for Jenkins OSS Plugins is MIT. Substitute for the applicable one if needed. -->
+    <description>Enables Jenkins builds to be triggered from Slack</description>
+
     <licenses>
         <license>
             <name>MIT License</name>
@@ -27,14 +26,13 @@
         </license>
     </licenses>
 
-    <!-- If you want this to appear on the wiki page:
     <developers>
       <developer>
-        <id>bhacker</id>
-        <name>Bob Q. Hacker</name>
-        <email>bhacker@nowhere.net</email>
+        <id>orrc</id>
+        <name>Christopher Orr</name>
+        <email>chris@orr.me.uk</email>
       </developer>
-    </developers> -->
+    </developers>
 
     <dependencies>
       <dependency>
@@ -90,13 +88,12 @@
       </plugins>
     </build>
 
-    <!-- Assuming you want to host on @jenkinsci:
     <scm>
         <connection>scm:git:git://github.com/jenkinsci/${project.artifactId}-plugin.git</connection>
         <developerConnection>scm:git:git@github.com:jenkinsci/${project.artifactId}-plugin.git</developerConnection>
         <url>https://github.com/jenkinsci/${project.artifactId}-plugin</url>
     </scm>
-    -->
+
     <repositories>
         <repository>
             <id>repo.jenkins-ci.org</id>
