@@ -11,8 +11,8 @@
       <f:password />
     </f:entry>
 
-    <f:entry field="verificationToken" title="${%Verification Token}">
-      <f:textbox/>
+    <f:entry field="requestSigningSecret" title="${%Signing Secret}">
+      <f:password />
     </f:entry>
 
   </f:section>

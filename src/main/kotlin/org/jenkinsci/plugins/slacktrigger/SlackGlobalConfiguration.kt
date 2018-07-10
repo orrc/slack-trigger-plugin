@@ -20,7 +20,7 @@ class SlackGlobalConfiguration : GlobalConfiguration() {
             save()
         }
 
-    var verificationToken: String? = null
+    var requestSigningSecret: Secret? = null
         @DataBoundSetter set(value) {
             field = value
             save()

@@ -6,13 +6,17 @@ import jenkins.model.Jenkins
 import jenkins.model.ParameterizedJobMixIn
 import net.sf.json.JSONObject
 import org.acegisecurity.Authentication
+import org.apache.commons.codec.digest.HmacAlgorithms.HMAC_SHA_256
+import org.apache.commons.codec.digest.HmacUtils
 import org.jenkinsci.plugins.slacktrigger.SlackWebhookHandler.ResponseType
 import org.kohsuke.stapler.HttpResponse
 import org.kohsuke.stapler.HttpResponses
 import java.util.logging.Logger
 
 class SlackWebhookHandler(
-    private val token: String?,
+    private val requestBody: String,
+    private val requestTimestamp: String?,
+    private val requestSignature: String?,
     private val sslCheck: String?,
     private val command: String?,
     private val teamDomain: String?,
@@ -31,19 +35,26 @@ class SlackWebhookHandler(
     }
 
     private fun executeInternal(): Response {
-        // Check that the verification token has been configured
-        val expectedToken = SlackGlobalConfiguration.get().verificationToken
-        if (expectedToken == null) {
-            logger.warning("Ignoring Slack webhook as verification token is configured")
-            return ChannelResponse(":fire: Jenkins does not have the Slack verification token configured: " +
+        // Check that the signing secret has been configured
+        val signingSecret = SlackGlobalConfiguration.get().requestSigningSecret?.plainText
+        if (signingSecret == null) {
+            logger.warning("Ignoring Slack webhook as signing secret has not been configured")
+            return ChannelResponse(":fire: Jenkins does not have the Slack signing secret configured: " +
                     Jenkins.getInstance().configUrl())
         }
 
-        // Verify token against configured value
-        if (token != expectedToken) {
-            logger.info("Ignoring Slack webhook as it has an unexpected verification token: '$token'")
-            return ChannelResponse(":fire: Jenkins does not have the correct Slack verification token configured: " +
-                    Jenkins.getInstance().configUrl())
+        // Check whether the timestamp and signature are present
+        if (requestTimestamp == null || requestSignature == null) {
+            logger.warning("Ignoring Slack webhook due to missing X-Slack-{Request-Timestamp,Signature} headers")
+            return UserResponse(":face_with_raised_eyebrow: Jenkins received an invalid message from Slack. Try again.")
+        }
+
+        // Determine the signature of the incoming webhook, and complain if it doesn't match
+        val computedSignature = computeRequestSignature(requestBody, requestTimestamp, signingSecret)
+        if (computedSignature != requestSignature) {
+            logger.info("Ignoring Slack webhook as it was not signed with the expected secret: '$signingSecret'")
+            return ChannelResponse(":fire: Jenkins could not verify the message from Slack. Is the correct signing " +
+                    "secret configured? " + Jenkins.getInstance().configUrl())
         }
 
         // Respond to pings from Slack checking whether we're properly configured
@@ -72,7 +83,7 @@ class SlackWebhookHandler(
                 - response_url: $responseUrl
                 """.trimIndent()
             )
-            return UserResponse(":fire: Slack did not send the expected data… cannot start a build!")
+            return UserResponse(":fire: Slack did not send the expected data… cannot start a build! Try again? :shrug:")
         }
 
         // Check for certain command types
@@ -234,6 +245,17 @@ class SlackWebhookHandler(
                 > `$command disconnect`
                """.trimIndent()
             )
+
+    /**
+     * Computes the signature for the given request body and timestamp.
+     *
+     * See: https://api.slack.com/docs/verifying-requests-from-slack
+     */
+    private fun computeRequestSignature(requestBody: String, requestTimestamp: String, signingSecret: String): String {
+        val signaturePayload = "v0:$requestTimestamp:$requestBody"
+        val hmac = HmacUtils(HMAC_SHA_256, signingSecret).hmacHex(signaturePayload)
+        return "v0=$hmac"
+    }
 
     // TODO: Parameters
     private fun Job<*, *>.scheduleBuild(quietPeriod: Int = 0, cause: Cause, actions: List<Action> = emptyList()) {
