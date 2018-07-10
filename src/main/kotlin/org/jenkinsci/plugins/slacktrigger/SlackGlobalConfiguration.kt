@@ -10,19 +10,19 @@ class SlackGlobalConfiguration : GlobalConfiguration() {
 
     var clientId: String? = null
         @DataBoundSetter set(value) {
-            field = value
+            field = value?.trim()
             save()
         }
 
     var clientSecret: Secret? = null
         @DataBoundSetter set(value) {
-            field = value
+            field = value?.trim()
             save()
         }
 
     var requestSigningSecret: Secret? = null
         @DataBoundSetter set(value) {
-            field = value
+            field = value?.trim()
             save()
         }
 
@@ -38,6 +38,12 @@ class SlackGlobalConfiguration : GlobalConfiguration() {
     init {
         // When Jenkins is restarted, load any saved configuration from disk
         load()
+    }
+
+    /** Ensures that the text stored in the secret is trimmed. */
+    private fun Secret?.trim(): Secret? = when (this) {
+        null -> null
+        else -> Secret.fromString(this.plainText.trim())
     }
 
 }

@@ -4,6 +4,7 @@ import hudson.Extension
 import hudson.model.RootAction
 import hudson.model.User
 import hudson.util.HttpResponses
+import jenkins.model.Jenkins
 import net.sf.json.JSONException
 import net.sf.json.JSONObject
 import okhttp3.HttpUrl
@@ -15,7 +16,6 @@ import org.kohsuke.stapler.QueryParameter
 import org.kohsuke.stapler.WebMethod
 import java.io.IOException
 import java.net.URLEncoder
-import jenkins.model.Jenkins
 import java.util.logging.Logger
 
 /** URL namespace for all endpoints defined here. */
