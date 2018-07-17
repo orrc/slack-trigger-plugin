@@ -27,7 +27,7 @@ class SlackConnectEndpoint : RootAction {
     private val logger = Logger.getLogger(SlackConnectEndpoint::class.java.name)
 
     companion object {
-        val connectUrl = Jenkins.getInstance().rootUrl + URL_NAMESPACE + "/"
+        val connectUrl get() = Jenkins.getInstance().rootUrl + URL_NAMESPACE + "/"
     }
 
     override fun getUrlName() = URL_NAMESPACE
