@@ -175,8 +175,8 @@ class SlackWebhookHandler(
 
         // Ask the user to disambiguate, if multiple jobs with the same short name were found
         if (jobs.size > 1) {
-            val msg = jobs.fold(":thinking_face: There are multiple jobs with that name; " +
-                    "please specify the full name:") { msg, job ->
+            val msg = jobs.fold(""":thinking_face: There are multiple jobs called "$jobSearchText"; """ +
+                    "try again with the full name:") { msg, job ->
                 "$msg\n:small_blue_diamond: ${job.slackLink()}" // TODO: Include configured parameter names?
             }
             return UserResponse(msg)
