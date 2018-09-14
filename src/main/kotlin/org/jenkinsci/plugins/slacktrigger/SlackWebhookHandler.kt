@@ -1,75 +1,55 @@
 package org.jenkinsci.plugins.slacktrigger
 
 import hudson.model.*
-import hudson.security.ACL
 import jenkins.model.Jenkins
 import jenkins.model.ParameterizedJobMixIn
-import net.sf.json.JSONObject
-import org.acegisecurity.Authentication
 import org.apache.commons.codec.digest.HmacAlgorithms.HMAC_SHA_256
 import org.apache.commons.codec.digest.HmacUtils
-import org.jenkinsci.plugins.slacktrigger.SlackWebhookHandler.ResponseType
-import org.kohsuke.stapler.HttpResponse
-import org.kohsuke.stapler.HttpResponses
 import java.util.logging.Logger
 
-class SlackWebhookHandler(
-    private val requestBody: String,
-    private val requestTimestamp: String?,
-    private val requestSignature: String?,
-    private val sslCheck: String?,
-    private val command: String?,
-    private val teamDomain: String?,
-    private val channelName: String?,
-    private val userId: String?,
-    private val userName: String?,
-    private val text: String?,
-    private val responseUrl: String?
+internal class SlackWebhookHandler(
+    private val request: SlackWebhookRequest,
+    private val signingSecret: String,
+    private val jenkins: Jenkins
 ) {
 
     private val logger = Logger.getLogger(SlackWebhookHandler::class.java.name)
 
-    fun execute(): HttpResponse {
-        val response = executeInternal()
-        return createHttpResponse(response)
-    }
-
-    private fun executeInternal(): Response {
-        // Check that the signing secret has been configured
-        val signingSecret = SlackGlobalConfiguration.get().requestSigningSecret?.plainText
-        if (signingSecret == null) {
-            logger.warning("Ignoring Slack webhook as signing secret has not been configured")
-            return ChannelResponse(":fire: Jenkins does not have the Slack signing secret configured: " +
-                    Jenkins.getInstance().configUrl())
-        }
-
+    fun execute(): Response {
         // Check whether the timestamp and signature are present
-        if (requestTimestamp == null || requestSignature == null) {
+        if (request.timestampHeader == null || request.signatureHeader == null) {
             logger.warning("Ignoring Slack webhook due to missing X-Slack-{Request-Timestamp,Signature} headers")
             return UserResponse(":face_with_raised_eyebrow: Jenkins received an invalid message from Slack. Try again.")
         }
 
         // Determine the signature of the incoming webhook, and complain if it doesn't match
-        val computedSignature = computeRequestSignature(requestBody, requestTimestamp, signingSecret)
-        if (computedSignature != requestSignature) {
+        val computedSignature = computeRequestSignature(request.requestBody, request.timestampHeader, signingSecret)
+        if (computedSignature != request.signatureHeader) {
             logger.info("Ignoring Slack webhook as it was not signed with the expected secret: '$signingSecret'")
             return ChannelResponse(":fire: Jenkins could not verify the message from Slack. Is the correct signing " +
                     "secret configured? " + Jenkins.getInstance().configUrl())
         }
 
         // Respond to pings from Slack checking whether we're properly configured
-        if (sslCheck == "1") {
+        if (request.sslCheck == "1") {
             logger.fine("Responding to ssl_check probe from Slack")
             return PlainResponse(":+1: Hello, ssl_check!")
         }
 
         // Check that the command name looks sane
+        val command = request.command
         if (command == null || !command.startsWith("/")) {
             logger.fine("Ignoring Slack webhook with unexpected command name, or missing slash prefix: '$command'")
             return ChannelResponse(":fire: Unknown command: $command")
         }
 
         // Do some sanity checks, so we know that we have valid data
+        val teamDomain = request.teamDomain
+        val channelName = request.channelName
+        val userId = request.userId
+        val userName = request.userName
+        val text = request.text
+        val responseUrl = request.responseUrl
         if (teamDomain == null || channelName == null
                 || userId == null || userName == null || text == null || responseUrl == null) {
             logger.warning("""
@@ -101,7 +81,7 @@ class SlackWebhookHandler(
         // Check whether Jenkins has the Slack OAuth properties configured
         if (!SlackGlobalConfiguration.hasOauthConfigured()) {
             return ChannelResponse(":fire: Jenkins does not have the Slack OAuth client ID and secret configured: " +
-                    Jenkins.getInstance().configUrl())
+                    jenkins.configUrl())
         }
 
         // Check whether we're already connected
@@ -210,29 +190,9 @@ class SlackWebhookHandler(
         return ChannelResponse(""":bulb: Successfully triggered a build of "${job.slackLink()}"""")
     }
 
-    private fun createHttpResponse(response: Response) = createHttpResponse(response.type, response.message)
-
-    private fun createHttpResponse(responseType: ResponseType, message: String): HttpResponse {
-        // Just send plain text, if we're not responding to a Slack channel
-        if (responseType == ResponseType.NONE) {
-            return HttpResponses.plainText(message)
-        }
-
-        val payload = JSONObject().apply {
-            put("response_type", responseType.toSlackValue())
-            put("text", message)
-        }
-        return HttpResponse { _, rsp, _ ->
-            val bytes = payload.toString().toByteArray()
-            rsp.contentType = "application/json; charset=UTF-8"
-            rsp.setContentLength(bytes.size)
-            rsp.outputStream.write(bytes)
-        }
-    }
-
     private fun createHelpResponse(command: String) =
             UserResponse("""
-                :wave: You can use this command to trigger builds on <${Jenkins.getInstance().rootUrl}|Jenkins>:
+                :wave: You can use this command to trigger builds on <${jenkins.rootUrl}|Jenkins>:
                 :small_blue_diamond: Start a build of "my job":
                 > `$command my job`
                 :small_blue_diamond: Start a build of the "deploy" job in the "Web Site" folder:
@@ -275,7 +235,7 @@ class SlackWebhookHandler(
     }
 
     private fun findMatchingJobs(jobName: String): List<Job<*, *>> {
-        return Jenkins.getInstance().getAllItems(Job::class.java)
+        return jenkins.getAllItems(Job::class.java)
                 .asSequence()
                 .filter { it.hasPermission(Item.READ) }
                 .filter { jobName == it.getName() || jobName == it.getFullName() }
@@ -297,22 +257,8 @@ class SlackWebhookHandler(
 
     /** @return A link to the job, showing its name, using the Slack message syntax. */
     private fun Job<*, *>.slackLink(): String {
-        val url = Jenkins.getInstance().rootUrl + this.getUrl()
+        val url = jenkins.rootUrl + this.getUrl()
         return "<$url|${this.getFullName()}>"
     }
 
-    private fun Jenkins.configUrl() = this.rootUrl + "configure"
-
-    internal enum class ResponseType(private val slackValue: String?) {
-        USER("ephemeral"),
-        CHANNEL("in_channel"),
-        NONE(null);
-
-        fun toSlackValue() = slackValue
-    }
 }
-
-private sealed class Response(val type: ResponseType, open val message: String)
-private class ChannelResponse(override val message: String) : Response(ResponseType.CHANNEL, message)
-private class UserResponse(override val message: String) : Response(ResponseType.USER, message)
-private class PlainResponse(override val message: String) : Response(ResponseType.NONE, message)
