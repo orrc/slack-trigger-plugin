@@ -1,6 +1,10 @@
 package org.jenkinsci.plugins.slacktrigger
 
-import hudson.model.*
+import hudson.model.Action
+import hudson.model.Cause
+import hudson.model.CauseAction
+import hudson.model.Item
+import hudson.model.Job
 import jenkins.model.Jenkins
 import jenkins.model.ParameterizedJobMixIn
 import java.util.logging.Logger
@@ -213,12 +217,6 @@ internal class SlackWebhookHandler(
         val allActions = actions.toMutableList().apply { add(CauseAction(cause)) }
         ParameterizedJobMixIn.scheduleBuild2(this, quietPeriod, *allActions.toTypedArray())
     }
-
-    private inline fun <R> User?.runAs(block: () -> R): R =
-            this?.let { impersonate().runAs { block() } } ?: block()
-
-    private inline fun <R> Authentication.runAs(block: () -> R): R =
-            ACL.`as`(this).use { block() }
 
     private fun extractJobSearchText(message: String): String? {
         // TODO: For now, we don't support parameters, so the whole message is the job name
