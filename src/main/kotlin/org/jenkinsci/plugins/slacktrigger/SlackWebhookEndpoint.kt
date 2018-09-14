@@ -93,7 +93,9 @@ class SlackWebhookEndpoint : UnprotectedRootAction {
 
 }
 
-internal sealed class Response(val type: ResponseType, open val message: String)
+internal sealed class Response(val type: ResponseType, open val message: String) {
+    override fun toString() = "${this::class.simpleName}{message=\"$message\"}"
+}
 internal class ChannelResponse(override val message: String) : Response(ResponseType.CHANNEL, message)
 internal class UserResponse(override val message: String) : Response(ResponseType.USER, message)
 internal class PlainResponse(override val message: String) : Response(ResponseType.NONE, message)
