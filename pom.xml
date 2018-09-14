@@ -15,6 +15,7 @@
         <java.level>8</java.level>
         <kotlin.version>1.2.51</kotlin.version>
         <kotlin.compiler.incremental>true</kotlin.compiler.incremental>
+        <arrow.version>0.7.3</arrow.version>
     </properties>
     <name>Slack Trigger Plugin</name>
     <description>Enables Jenkins builds to be triggered from Slack</description>
@@ -49,6 +50,11 @@
         <groupId>commons-codec</groupId>
         <artifactId>commons-codec</artifactId>
         <version>1.11</version>
+      </dependency>
+      <dependency>
+        <groupId>io.arrow-kt</groupId>
+        <artifactId>arrow-core</artifactId>
+        <version>${arrow.version}</version>
       </dependency>
     </dependencies>
 

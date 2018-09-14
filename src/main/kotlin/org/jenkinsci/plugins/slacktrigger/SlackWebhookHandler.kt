@@ -3,8 +3,6 @@ package org.jenkinsci.plugins.slacktrigger
 import hudson.model.*
 import jenkins.model.Jenkins
 import jenkins.model.ParameterizedJobMixIn
-import org.apache.commons.codec.digest.HmacAlgorithms.HMAC_SHA_256
-import org.apache.commons.codec.digest.HmacUtils
 import java.util.logging.Logger
 
 internal class SlackWebhookHandler(
@@ -16,18 +14,22 @@ internal class SlackWebhookHandler(
     private val logger = Logger.getLogger(SlackWebhookHandler::class.java.name)
 
     fun execute(): Response {
-        // Check whether the timestamp and signature are present
-        if (request.timestampHeader == null || request.signatureHeader == null) {
-            logger.warning("Ignoring Slack webhook due to missing X-Slack-{Request-Timestamp,Signature} headers")
-            return UserResponse(":face_with_raised_eyebrow: Jenkins received an invalid message from Slack. Try again.")
-        }
-
-        // Determine the signature of the incoming webhook, and complain if it doesn't match
-        val computedSignature = computeRequestSignature(request.requestBody, request.timestampHeader, signingSecret)
-        if (computedSignature != request.signatureHeader) {
-            logger.info("Ignoring Slack webhook as it was not signed with the expected secret: '$signingSecret'")
-            return ChannelResponse(":fire: Jenkins could not verify the message from Slack. Is the correct signing " +
-                    "secret configured? " + Jenkins.getInstance().configUrl())
+        // Check that the request was signed by Slack
+        request.validateSignature(signingSecret).mapLeft {
+            return when (it) {
+                is MissingHeaderError -> {
+                    logger.warning("Ignoring Slack webhook due to missing X-Slack-{Request-Timestamp,Signature} " +
+                            "headers")
+                    UserResponse(":face_with_raised_eyebrow: Jenkins received an invalid message from Slack. " +
+                            "Try again.")
+                }
+                is InvalidSignatureError -> {
+                    logger.info("Ignoring Slack webhook as it was not signed with the expected secret: " +
+                            "'$signingSecret'")
+                    ChannelResponse(":fire: Jenkins could not verify the message from Slack. Is the correct signing " +
+                            "secret configured? " + jenkins.configUrl())
+                }
+            }
         }
 
         // Respond to pings from Slack checking whether we're properly configured
@@ -205,17 +207,6 @@ internal class SlackWebhookHandler(
                 > `$command disconnect`
                """.trimIndent()
             )
-
-    /**
-     * Computes the signature for the given request body and timestamp.
-     *
-     * See: https://api.slack.com/docs/verifying-requests-from-slack
-     */
-    private fun computeRequestSignature(requestBody: String, requestTimestamp: String, signingSecret: String): String {
-        val signaturePayload = "v0:$requestTimestamp:$requestBody"
-        val hmac = HmacUtils(HMAC_SHA_256, signingSecret).hmacHex(signaturePayload)
-        return "v0=$hmac"
-    }
 
     // TODO: Parameters
     private fun Job<*, *>.scheduleBuild(quietPeriod: Int = 0, cause: Cause, actions: List<Action> = emptyList()) {
