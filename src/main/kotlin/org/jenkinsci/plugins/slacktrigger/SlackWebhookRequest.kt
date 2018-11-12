@@ -14,7 +14,7 @@ internal data class SlackWebhookRequest(
     val channelName: String?,
     val userId: String?,
     val userName: String?,
-    val text: String?,
+    val messageText: String?,
     val responseUrl: String?
 ) {
 
