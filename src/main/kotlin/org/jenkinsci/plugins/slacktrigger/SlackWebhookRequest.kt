@@ -18,7 +18,7 @@ internal data class SlackWebhookRequest(
     val responseUrl: String?
 ) {
 
-    fun validateSignature(signingSecret: String): Either<ValidationError, Boolean> {
+    fun validateSignature(signingSecret: String): Either<ValidationError, Unit> {
         // Check whether the timestamp and signature are present
         if (timestampHeader == null || signatureHeader == null) {
             return Either.Left(MissingHeaderError)
@@ -30,7 +30,9 @@ internal data class SlackWebhookRequest(
             return Either.left(InvalidSignatureError)
         }
 
-        return Either.right(true)
+        // TODO: Check for replay, or mismatched timestamp
+
+        return Either.right(Unit)
     }
 
     companion object {
